@@ -1,0 +1,11 @@
+Model Information:
+* title:	Chair Lift
+* source:	https://sketchfab.com/3d-models/chair-lift-afd305cdd4cb450f80b59f24b4b3e236
+* author:	Kagelok (https://sketchfab.com/Kagelok)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Chair Lift" (https://sketchfab.com/3d-models/chair-lift-afd305cdd4cb450f80b59f24b4b3e236) by Kagelok (https://sketchfab.com/Kagelok) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

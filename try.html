@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>three.js webgl - equirectangular panorama</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+</head>
+
+<body>
+
+    <div id="container"></div>
+    <div id="info">
+        <a href="https://threejs.org" target="_blank" rel="noopener">three.js webgl</a> - equirectangular panorama demo.
+        photo by <a href="http://www.flickr.com/photos/jonragnarsson/2294472375/" target="_blank" rel="noopener">Jón
+            Ragnarsson</a>.<br />
+        drag equirectangular texture into the page.
+    </div>
+
+    <script type="importmap">
+			{
+                "imports":{
+                "three" : "../node_modules/three/build/three.module.js",
+                "orbitControls" : "../node_modules/three/examples/jsm/controls/OrbitControls.js",
+                "gltfLoader" : "../node_modules/three/examples/jsm/loaders/GLTFLoader.js",
+                "fbxLoader" : "../node_modules/three/examples/jsm/loaders/FBXLoader.js",
+                "dat.gui" : "../node_modules/dat.gui/build /dat.gui.module.js",
+                "three/addons/" : "../node_modules/three/examples/jsm/"
+                }
+				
+			}
+		</script>
+
+    <script type="module">
+
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'gltfLoader';
+import { FBXLoader } from 'fbxLoader';
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+import Stats from 'three/addons/libs/stats.module.js';
+import { Water } from 'three/addons/objects/Water.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/addons/loaders/MTLLoader.js';
+
+let container, stats;
+let camera, scene, renderer;
+let options, water, sun;
+let box;
+
+let particles;
+let positions = [], velocities = [];
+const numSnowFlakes = 15000;
+const maxRange = 1000, minRange = maxRange / 2;
+const minHeight = 150;                          // z 150 to 500
+const sFGeometry = new THREE.BufferGeometry();
+const sFtextureLoader = new THREE.TextureLoader();
+
+        let isUserInteracting = false,
+            onPointerDownMouseX = 0, onPointerDownMouseY = 0,
+            lon = 0, onPointerDownLon = 0,
+            lat = 0, onPointerDownLat = 0,
+            phi = 0, theta = 0;
+
+        init();
+        animate();
+
+        function init() {
+
+            const container = document.getElementById('container');
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+
+            scene = new THREE.Scene();
+
+            const geometry = new THREE.SphereGeometry(500, 60, 40);
+            // invert the geometry on the x-axis so that all of the faces point inward
+            geometry.scale(- 1, 1, 1);
+
+            const texture = new THREE.TextureLoader().load('Snowy1.jpg');
+            texture.colorSpace = THREE.SRGBColorSpace;
+            const material = new THREE.MeshBasicMaterial({ map: texture });
+
+            const mesh = new THREE.Mesh(geometry, material);
+
+            scene.add(mesh);
+
+            
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+
+            container.style.touchAction = 'none';
+            // container.addEventListener('pointerdown', onPointerDown);
+
+            const gridHeler = new THREE.GridHelper();
+scene.add(gridHeler);
+
+const light = new THREE.AmbientLight(0xffffff); // soft white light
+scene.add(light);
+
+const houseLoader = new FBXLoader();
+houseLoader.load('../winter-country-house/source/WinterHouse.fbx', function (object) {
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            // child.castShadow = true;
+            // child.receiveShadow = true;
+        }
+    });
+    object.position.set(25,6,0) ;
+    scene.add(object);
+});
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.load('../street_light_lamp/scene.gltf', function(gltf){
+    const model = gltf.scene;
+    model.scale.set(5, 5, 5);
+    scene.add(model);
+});
+gltfLoader.load('../street_light_lamp/scene.gltf', function(gltf){
+    const model = gltf.scene;
+    model.scale.set(5, 5, 5);
+    model.position.set(50,0 ,0);
+    scene.add(model);
+});
+gltfLoader.load('../street_light_lamp/scene.gltf', function(gltf){
+    const model = gltf.scene;
+    model.scale.set(5, 5, 5);
+    model.position.set(0,0 ,70);
+    scene.add(model);
+});
+gltfLoader.load('../street_light_lamp/scene.gltf', function(gltf){
+    const model = gltf.scene;
+    model.scale.set(5, 5, 5);
+    model.position.set(75,0 ,75);
+    scene.add(model);
+});
+
+gltfLoader.load('../chair_lift/scene.gltf', function(gltf){
+    const model = gltf.scene;
+    model.scale.set(40, 40,40);
+    model.position.set(0, 20 ,0);
+    model.rotation.set(0, 30,0);
+    scene.add(model);
+});
+
+const boatLoader1 = new FBXLoader();
+boatLoader1.load('../Boat/boat.fbx', function (object) {
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            // child.castShadow = true;
+            // child.receiveShadow = true;
+        }
+    });
+    object.position.set( 30, 0,0 ) ;
+    // scene.add(object);
+});
+
+
+boatLoader1.load('../Boat/boat.fbx', function (object) {
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            // child.castShadow = true;
+            // child.receiveShadow = true;
+        }
+    });
+    object.position.set( 40, 0,0 ) ;
+    // scene.add(object);
+});
+
+
+const mtlLoader = new MTLLoader();
+	mtlLoader.load("christmas-tree/source/{2AF77DF9-9E1D-4AFC-9B38-CB2D56BB42AD}/model.mtl", function(materials){
+		
+		materials.preload();
+        const treeLoader = new OBJLoader();
+		treeLoader.setMaterials(materials);
+		
+		treeLoader.load("christmas-tree/source/{2AF77DF9-9E1D-4AFC-9B38-CB2D56BB42AD}/model.obj", function(mesh){
+		
+			mesh.traverse(function(node){
+				if( node instanceof THREE.Mesh ){
+					node.castShadow = true;
+					node.receiveShadow = true;
+				}
+			});
+		
+			scene.add(mesh);
+			mesh.position.set(5, -5, 0);
+			mesh.rotation.y = -Math.PI/4;
+		});
+		
+	});
+
+
+const mountainTextureLoader = new THREE.TextureLoader();
+const mountainTexture = mountainTextureLoader.load('snow-mountain/textures/bake.png');
+
+const mountainLoader = new FBXLoader();
+mountainLoader.load('../snow-mountain/source/gaeamountain.fbx', function (object) {
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            child.material.map = mountainTexture;
+            // child.castShadow = true;
+            // child.receiveShadow = true;
+        }
+    });
+
+    object.position.set(0,13.17,0) ;
+    object.scale.set(0.001, 0.001, 0.001);
+
+    scene.add(object);
+}); 
+
+
+
+
+            // document.addEventListener('wheel', onDocumentMouseWheel);
+
+            //
+
+            // document.addEventListener('dragover', function (event) {
+
+            //     event.preventDefault();
+            //     event.dataTransfer.dropEffect = 'copy';
+
+            // });
+            options = new OrbitControls(camera, renderer.domElement);
+            scene.add(options);
+
+            document.addEventListener('dragenter', function () {
+
+                document.body.style.opacity = 0.5;
+
+            });
+
+            document.addEventListener('dragleave', function () {
+
+                document.body.style.opacity = 1;
+
+            });
+
+            document.addEventListener('drop', function (event) {
+
+                event.preventDefault();
+
+                const reader = new FileReader();
+                reader.addEventListener('load', function (event) {
+
+                    material.map.image.src = event.target.result;
+                    material.map.needsUpdate = true;
+
+                });
+                reader.readAsDataURL(event.dataTransfer.files[0]);
+
+                document.body.style.opacity = 1;
+
+            });
+
+            //
+
+            window.addEventListener('resize', onWindowResize);
+
+        }
+
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+        // function onPointerDown(event) {
+
+        //     if (event.isPrimary === false) return;
+
+        //     isUserInteracting = true;
+
+        //     onPointerDownMouseX = event.clientX;
+        //     onPointerDownMouseY = event.clientY;
+
+        //     onPointerDownLon = lon;
+        //     onPointerDownLat = lat;
+
+        //     document.addEventListener('pointermove', onPointerMove);
+        //     document.addEventListener('pointerup', onPointerUp);
+
+        // }
+
+        // function onPointerMove(event) {
+
+        //     if (event.isPrimary === false) return;
+
+        //     lon = (onPointerDownMouseX - event.clientX) * 0.1 + onPointerDownLon;
+        //     lat = (event.clientY - onPointerDownMouseY) * 0.1 + onPointerDownLat;
+
+        // }
+
+        // function onPointerUp() {
+
+        //     if (event.isPrimary === false) return;
+
+        //     isUserInteracting = false;
+
+        //     document.removeEventListener('pointermove', onPointerMove);
+        //     document.removeEventListener('pointerup', onPointerUp);
+
+        // }
+
+        // function onDocumentMouseWheel(event) {
+
+        //     const fov = camera.fov + event.deltaY * 0.05;
+
+        //     camera.fov = THREE.MathUtils.clamp(fov, 10, 75);
+
+        //     camera.updateProjectionMatrix();
+
+        // }
+
+        function animate() {
+
+            requestAnimationFrame(animate);
+            update();
+
+        }
+
+        function update() {
+
+            if (isUserInteracting === false) {
+
+                lon += 0.1;
+
+            }
+
+            lat = Math.max(- 85, Math.min(85, lat));
+            phi = THREE.MathUtils.degToRad(90 - lat);
+            theta = THREE.MathUtils.degToRad(lon);
+
+            const x = 500 * Math.sin(phi) * Math.cos(theta);
+            const y = 500 * Math.cos(phi);
+            const z = 500 * Math.sin(phi) * Math.sin(theta);
+
+            camera.lookAt(x, y, z);
+
+            renderer.render(scene, camera);
+
+        }
+
+    </script>
+</body>
+
+</html>
